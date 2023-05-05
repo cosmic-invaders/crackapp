@@ -1,118 +1,13 @@
-// import 'dart:js_util';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
 
-// class scan extends StatefulWidget {
-//   const scan({Key? key}) : super(key: key);
-//
-//   @override
-//   State<scan> createState() => _scanState();
-// }
-//
-// class _scanState extends State<scan> {
-//
-//
-//
-//
-//   File? imageFile;
-//
-//
-//   _openGallery(BuildContext context) async{
-//     final ImagePicker picker = ImagePicker();
-//      final pic = await picker.pickImage(source: ImageSource.gallery);
-//      setState(() {
-//        File imageFile =pic as File;
-//      });
-//      Navigator.of(context).pop();
-//
-//   }
-//
-//
-//
-//   _openCamera(BuildContext context) async{
-//     final ImagePicker picker = ImagePicker();
-//     final pic = await picker.pickImage(source: ImageSource.camera);
-//     setState(() {
-//        imageFile =pic as File;
-//     });
-//     Navigator.of(context).pop();
-//
-//   }
-//
-//   Future<void> _showChoiceDialog(BuildContext context){
-//     return showDialog(context: context, builder: (BuildContext){
-//       return AlertDialog(
-//         title: Text('Make a choice'),
-//         content: SingleChildScrollView(
-//           child: ListBody(
-//             children: [
-//               GestureDetector(
-//                 child : Text('Gallary'),
-//                 onTap: (){
-//                   _openGallery(context);
-//                 },
-//               ),
-//               Padding(padding: EdgeInsets.all(8.0)),
-//               GestureDetector(
-//                 child : Text('Camera'),
-//                 onTap: (){
-//                   _openCamera(context);
-//                 },
-//               )
-//             ],
-//           ),
-//         ),
-//       );
-//     });
-//   }
-//
-//
-//
-//   @override
-//   Widget build(BuildContext context) {
-//
-//     var assetsImage = new AssetImage('assets/illustration.jpg'); //<- Creates an object that fetches an image.
-//
-//     var image = new Image(image: assetsImage, fit: BoxFit.cover);
-//
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: Text('Scan the Crack'),
-//       ),
-//       body: Container(
-//         child: Center(
-//         child: Column(
-//           mainAxisAlignment: MainAxisAlignment.center,
-//
-//           children: [
-//             // Text('No image selected'),
-//             // SizedBox(height: 50,),
-//
-//
-//             imageFile!= null ? Image.file(imageFile!,width: 4000): image,
-//             TextButton(onPressed: () {
-//               _showChoiceDialog(context);
-//
-//             } ,
-//                 child: Text('Scan Image'))
-//           ],
-//         ),
-//         ),
-//       ),
-//     );
-//   }
-// }
-
-
-//
 class scan extends StatefulWidget {
   const scan({Key? key,}) : super(key: key);
-
-
 
   @override
   State<scan> createState() => _scanState();}
@@ -149,8 +44,51 @@ class _scanState extends State<scan> {
     }
   }
 
+  final String apiUrl = "http://10.0.2.2:3000/imageapi";
+  Future sendImage(File imageFile) async {
+    List<int> imageBytes = await imageFile.readAsBytes();
+    String base64Image = base64.encode(imageBytes);
+    print(base64Image);
+    final Map<String, String> headers = {
+      'Content-Type': 'application/json'
+    };
+
+    final response = await http.post(
+      Uri.parse(apiUrl),
+      headers: headers,
+      body: jsonEncode({'image': base64Image}),
+    );
+
+    if (response.statusCode == 200) {
+      // handle success
+      print('output from here');
+
+      print(response.body);
+
+      // String base64String = response.body;
+      // List<int> bytes = base64.decode(base64String);
+      //
+      // // imageBytes = base64.b64decode(response.body);
+      // // Uint8List imgbytes = Uint8List.fromList(imageBytes);
+      // final processed = image!;
+      // processed.writeAsBytesSync(bytes);
+      // setState(() {
+      //   this.image = processed;
+      // });
+
+    } else {
+      // handle error
+      print('Error sending image: ${response.statusCode}');
+    }
+
+    print('this is image');
+    print(image);
+  }
+
   @override
   Widget build(BuildContext context) {
+
+
 
     var assetsImage = new AssetImage('assets/illustration.png');
     var emptyimage = new Image(image: assetsImage, fit: BoxFit.cover);
@@ -167,28 +105,52 @@ class _scanState extends State<scan> {
               SizedBox(height: 10,),
               image != null ? Image.file(image!,height: 500,width: 700,): emptyimage,
               SizedBox(height: 10,),
-              MaterialButton(
-                  color: Colors.blue,
-                  child: const Text(
-                      "Pick Image from Gallery",
-                      style: TextStyle(
-                          color: Colors.white70, fontWeight: FontWeight.bold
-                      )
-                  ),
-                  onPressed: () {
-                    pickImage();
-                  }
+
+              Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children :[
+                    MaterialButton(
+                        color: Colors.lightGreen,
+
+                        child: const Text(
+                            "Pick Image from Gallery",
+                            style: TextStyle(
+                                color: Colors.white70, fontWeight: FontWeight.bold,fontSize: 10,
+                            )
+                        ),
+                        onPressed: () {
+                          pickImage();
+                        }
+                    ),
+                    SizedBox(width: 20,),
+                    MaterialButton(
+                        color: Colors.greenAccent,
+                        child: const Text(
+                            "Pick Image from Camera",
+                            style: TextStyle(
+                                color: Colors.white70, fontWeight: FontWeight.bold,fontSize: 10,
+                            )
+                        ),
+                        onPressed: () {
+                          pickImageC();
+                        }
+                    ),
+                  ],
+
+                ),
               ),
               MaterialButton(
-                  color: Colors.blue,
+                  color: Colors.greenAccent,
                   child: const Text(
-                      "Pick Image from Camera",
+                      "UPLOAD",
                       style: TextStyle(
-                          color: Colors.white70, fontWeight: FontWeight.bold
+                        color: Colors.white70, fontWeight: FontWeight.bold,fontSize: 10,
                       )
                   ),
                   onPressed: () {
-                    pickImageC();
+                    sendImage(image!);
                   }
               ),
             ],
