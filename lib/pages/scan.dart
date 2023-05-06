@@ -44,7 +44,7 @@ class _scanState extends State<scan> {
     }
   }
 
-  final String apiUrl = "http://10.0.2.2:3000/imageapi";
+  final String apiUrl = "https://bc87-203-192-244-27.ngrok.io/imageapi";
   Future sendImage(File imageFile) async {
     List<int> imageBytes = await imageFile.readAsBytes();
     String base64Image = base64.encode(imageBytes);
@@ -64,25 +64,32 @@ class _scanState extends State<scan> {
       print('output from here');
 
       print(response.body);
+      // File? processed;
 
       // String base64String = response.body;
       // List<int> bytes = base64.decode(base64String);
-      //
+      // //
       // // imageBytes = base64.b64decode(response.body);
       // // Uint8List imgbytes = Uint8List.fromList(imageBytes);
       // final processed = image!;
       // processed.writeAsBytesSync(bytes);
-      // setState(() {
-      //   this.image = processed;
-      // });
+      // final imageTemp = File(processed.path);
+      setState(() {
+        this.image = response.body as File?;
+      });
+      // print(imageTemp==image);
+      print('this is image');
+      print(image);
+      // print(imageTemp);
+      setState(() {
 
+      });
     } else {
       // handle error
       print('Error sending image: ${response.statusCode}');
     }
 
-    print('this is image');
-    print(image);
+
   }
 
   @override
