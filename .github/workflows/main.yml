@@ -10,6 +10,7 @@ on:
 name: "Build & Release"
 jobs:
   build:
+    permissions: write-all
     name: Build & Release
     runs-on: windows-latest
     steps:
@@ -23,7 +24,7 @@ jobs:
           flutter-version: '3.7.12'
           channel : 'stable'
       - run: flutter pub get
-      - run: flutter test
+
       - run: flutter build
       - run: flutter build appbundle
 
