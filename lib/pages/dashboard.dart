@@ -1,106 +1,117 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:crackapp/pages/details.dart';
+import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
+import 'package:shimmer/shimmer.dart';
 
 class dashboard extends StatefulWidget {
-  const dashboard({Key? key}) : super(key: key);
-
   @override
-  State<dashboard> createState() => _dashboardState();
+  _dashboardState createState() => _dashboardState();
 }
 
-class _dashboardState extends State<dashboard> {
-  final String apiUrl = "http://10.0.2.2:3000/reverse_string";
+class _dashboardState extends State<dashboard> with AutomaticKeepAliveClientMixin {
+  Future<List<String>>? _imageUrlsFuture;
 
-  TextEditingController _controller = TextEditingController();
-  String _reversedString = '';
+  @override
+  void initState() {
+    super.initState();
+    _imageUrlsFuture = getImageUrls();
+  }
 
-  Future<void> _reverseString() async {
-    String input2 = _controller.text;
-    print(input2);
-    // String input = 'hello';
-    final Map<String, String> headers = {
-      'Content-Type': 'application/json'
-    };
+  Future<List<String>> getImageUrls() async {
+    List<String> imageUrls = [];
+    firebase_storage.ListResult listResult =
+    await firebase_storage.FirebaseStorage.instance.ref('images/').listAll();
 
-    // Send a POST request to the Flask server with the input string
-    final response = await http.post(
-      Uri.parse(apiUrl),
-      headers: headers,
-      body: jsonEncode({'input_string': input2}),
-    );
-    Map<String, dynamic> data = jsonDecode(response.body);
-    String reversedString = data['reversed_string'];
-    // Update the UI with the reversed string
-    setState(() {
-      _reversedString = reversedString;
-    });
+    for (var item in listResult.items) {
+      String downloadURL = await item.getDownloadURL();
+      imageUrls.add(downloadURL);
+    }
+
+    return imageUrls;
   }
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context); // Ensure the state is kept alive
+
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _controller,
-              decoration: InputDecoration(
-                labelText: 'Enter a string',
-              ),
-            ),
-            SizedBox(height: 16.0),
-            ElevatedButton(
-              onPressed: _reverseString,
-              child: Text('Reverse string'),
-            ),
-            SizedBox(height: 16.0),
-            Text(
-              'Reversed string: $_reversedString',
-              style: TextStyle(fontSize: 18.0),
-            ),
-          ],
+      appBar: AppBar(title: Text('Dashboard')),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          setState(() {
+            _imageUrlsFuture = getImageUrls();
+          });
+        },
+        child: FutureBuilder<List<String>>(
+          future: _imageUrlsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return ListView.builder(
+                itemCount: 6, // Display 6 loading skeletons
+                itemBuilder: (context, index) {
+                  return Shimmer.fromColors(
+                    baseColor: Colors.grey[300]!,
+                    highlightColor: Colors.grey[400]!,
+                    child: Container(
+                      height: 180,
+                      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  );
+                },
+              );
+            } else if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            } else {
+              List<String> imageUrls = snapshot.data!;
+              return ListView.builder(
+                itemCount: imageUrls.length,
+                itemBuilder: (context, index) {
+                  String imageUrl = imageUrls[index];
+
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => details(
+                            imageUrl: imageUrl,
+                          ),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      height: 180,
+                      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: CachedNetworkImage(
+                          imageUrl: imageUrl,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) =>
+                              Center(child: CircularProgressIndicator()),
+                          errorWidget: (context, url, error) => Icon(Icons.error),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              );
+            }
+          },
         ),
       ),
     );
   }
 }
-
-
-
-/////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////
-
-
-//
-// void main() {
-//   runApp(MyApp());
-// }
-//
-// class MyApp extends StatefulWidget {
-//   @override
-//   _MyAppState createState() => _MyAppState();
-// }
-//
-// class _MyAppState extends State<MyApp> {
-//
-//
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return MaterialApp(
-//       title: 'String Reversal App',
-//       home: Scaffold(
-//         appBar: AppBar(
-//           title: Text('String Reversal App'),
-//         ),
-//
-//       ),
-//     );
-//   }
-// }
-//

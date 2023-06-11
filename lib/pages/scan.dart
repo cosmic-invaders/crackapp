@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import 'package:fluttertoast/fluttertoast.dart';
 
 class scan extends StatefulWidget {
   const scan({Key? key,}) : super(key: key);
@@ -16,22 +17,45 @@ class scan extends StatefulWidget {
 
 class _scanState extends State<scan> {
 
+  bool _isLoading = false;
   File? image;
 
-  Future pickImage() async {
-    try {
-      final image = await ImagePicker().pickImage(source: ImageSource.gallery);
-      if (image == null) return;
-      final imageTemp = File(image.path);
-      setState(() => this.image = imageTemp);
-    } on PlatformException catch (e) {
-      print('Failed to pick image: $e');
-    }
+  void showOptionsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Pick Image'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                GestureDetector(
+                  child: Text('Camera'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    pickImage(ImageSource.camera);
+                  },
+                ),
+                Padding(padding: EdgeInsets.all(8.0)),
+                GestureDetector(
+                  child: Text('Gallery'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    pickImage(ImageSource.gallery);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
-  Future pickImageC() async {
+
+  Future pickImage(ImageSource source) async {
     try {
-      final image = await ImagePicker().pickImage(source: ImageSource.camera);
+      final image = await ImagePicker().pickImage(source: source);
       if (image == null) return;
       final imageTemp = File(image.path);
       setState(() => this.image = imageTemp);
@@ -54,12 +78,18 @@ class _scanState extends State<scan> {
     final Map<String, String> headers = {
       'Content-Type': 'application/json'
     };
+    setState(() {
+      _isLoading = true; // Set loading state to true before starting the async task
+    });
 
     final response = await http.post(
       Uri.parse(apiUrl),
       headers: headers,
       body: jsonEncode({'image': base64Image}),
     );
+    setState(() {
+      _isLoading = false; // Set loading state to true before starting the async task
+    });
 
     if (response.statusCode == 200) {
       // handle success
@@ -69,32 +99,18 @@ class _scanState extends State<scan> {
       this.b64 = response.body;
       Navigator.of(context).push(MaterialPageRoute(
           builder: (context) => segmentation(b64!)));
-      // Navigator.push(
-      //   context,
-      //   MaterialPageRoute(builder: (context) => segmentation(base64String)),
-      // );
 
-      // List<int> bytes = base64.decode(base64String);
-      // //
-      // // imageBytes = base64.b64decode(response.body);
-      // // Uint8List imgbytes = Uint8List.fromList(imageBytes);
-      // final processed = image!;
-      // processed.writeAsBytesSync(bytes);
-      // final imageTemp = File(processed.path);
-      // setState(() {
-      //   this.image = response.body as File?;
-      // });
-      // print(imageTemp==image);
-      // print('this is image');
-      // print(image);
-      // // print(imageTemp);
-      // setState(() {
-      //
-      // });
     } else {
       // handle error
-      print('Error sending image: ${response.statusCode}');
+      String errorMessage = 'Request failed with status ${response.statusCode}';
+      Fluttertoast.showToast(
+        msg: errorMessage,
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.BOTTOM,
+      );
+      print('Request failed with status: ${response.statusCode}');
     }
+
   }
 
   @override
@@ -102,10 +118,15 @@ class _scanState extends State<scan> {
     var assetsImage = new AssetImage('assets/illustration.png');
     var emptyimage = new Image(image: assetsImage, fit: BoxFit.cover);
     // SvgPicture.asset("assets/alarm_icon.svg");
+    final size = MediaQuery.of(context).size;
+
+    // Calculate the width and height as a percentage of screen size
+    final boxWidth = size.width * 0.75;
+    final boxHeight = size.height * 0.4;
 
     return Scaffold(
         appBar: AppBar(
-          title: const Text("Image Picker Example"),
+          title: const Text("Scan the Deformation"),
         ),
 
         body: Center(
@@ -113,65 +134,145 @@ class _scanState extends State<scan> {
 
             children: [
 
-              SizedBox(height: 10,),
-              image != null
-                  ? Image.file(image!, height: 500, width: 700,)
-                  : emptyimage,
-              SizedBox(height: 10,),
+              SafeArea(child: Column(
+                children: [
+                  SizedBox(height: 50,),
 
-              Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    MaterialButton(
-                        color: Colors.lightGreen,
+                  Container(
+                      height: boxHeight, // set the height
+                      width: boxWidth,
 
-                        child: const Text(
-                            "Pick Image from Gallery",
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 10,
-                            )
-                        ),
-                        onPressed: () {
-                          pickImage();
-                        }
-                    ),
-                    SizedBox(width: 20,),
-                    MaterialButton(
-                        color: Colors.greenAccent,
-                        child: const Text(
-                            "Pick Image from Camera",
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 10,
-                            )
-                        ),
-                        onPressed: () {
-                          pickImageC();
-                        }
-                    ),
-                  ],
+                      // alignment: Alignment.center,
+                      child: FittedBox(fit: BoxFit.contain,
 
-                ),
-              ),
-              MaterialButton(
-                  color: Colors.greenAccent,
-                  child: const Text(
-                      "UPLOAD",
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 10,
-                      )
+                        child: InteractiveViewer(child:  image != null
+                            ? Image.file(image!)
+                            : emptyimage,
+                        ),)
                   ),
-                  onPressed: () {
-                    sendImage(image!, context);
-                  }
-              ),
+
+
+                  SizedBox(height: 100,),
+                  Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+
+
+                        ElevatedButton(
+                          onPressed: () {
+                            // Button action
+                            showOptionsDialog(context);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10), // Set the border radius
+
+                            ),
+                          elevation: 2,
+                          ),
+                          child: Ink(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              gradient: LinearGradient(
+                                colors: [
+                                  Color(0xFFA68F28), // Darker yellow color
+                                  Color(0xFF918F65), // Dull yellow color
+                                ],
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                              ),
+                            ),
+                            child: Container(
+                              width: 200, // Specify the desired width of the button
+                              height: 40,
+
+                              alignment: Alignment.center,
+                              child: Text(
+                                'Select Image',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+
+
+                      ],
+
+                    ),
+                  ),
+                  SizedBox(
+                    height: 15,
+                  ),
+                  image != null
+                      ?  Stack(
+                    children: [
+                      if (!_isLoading)
+                        ElevatedButton(
+                          onPressed: () {
+                            // Button action
+                            sendImage(image!,context);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10), // Set the border radius
+
+                            ),
+                            elevation: 5
+                          ),
+                          child: Ink(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              // gradient: LinearGradient(
+                              //   colors: [Color(0xFF37474F), Color(0xFF78909C)],
+                              //   begin: Alignment.topCenter,
+                              //   end: Alignment.bottomCenter,
+                              // ),
+                              color: Colors.blue
+
+                            ),
+                            child: Container(
+                              width: 200, // Specify the desired width of the button
+                              height: 40,
+
+                              alignment: Alignment.center,
+                              child:Row(children: [
+                                SizedBox(
+                                  width: 50,
+                                ),
+                                Icon(
+                                  Icons.cloud_upload, // Replace with your desired icon
+                                  color: Colors.white,
+                                ),
+                                SizedBox(
+                                  width: 15,
+                                ),
+                                Text(
+                                  'Upload',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),],),
+                            ),
+                          ),
+                        ),
+                      if (_isLoading)
+                        Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                    ],
+                  ): SizedBox(height: 10,width:10),
+                ],
+              )),
 
             ],
           ),
