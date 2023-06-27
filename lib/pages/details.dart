@@ -1,13 +1,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:photo_view/photo_view.dart';
 
 class details extends StatelessWidget {
   final String imageUrl;
 
   details({required this.imageUrl});
-
-  // get assetsImage => null;
 
   String extractCreationTimeFromUrl() {
     // Extract the timestamp from the image URL
@@ -47,48 +46,81 @@ class details extends StatelessWidget {
         title: Text('Image Details'),
       ),
       body: Center(
-        child: AspectRatio(
-          aspectRatio: 1.0,
-          child: Card(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Expanded(
-                  child: Image.network(
-                    imageUrl,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Scanned on:',
-                          style: TextStyle(
-                            fontSize: 25.0,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        SizedBox(height: 16.0),
-                        Text(
-                          'Date: $formattedDate',
-                          style: TextStyle(fontSize: 20.0),
-                        ),
-                        SizedBox(height: 8.0),
-                        Text(
-                          'Time: $formattedTime',
-                          style: TextStyle(fontSize: 20.0),
-                        ),
-                      ],
+        child: GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => FullScreenImage(imageUrl: imageUrl),
+              ),
+            );
+          },
+          child: AspectRatio(
+            aspectRatio: 1.0,
+            child: Card(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Expanded(
+                    child: Image.network(
+                      imageUrl,
+                      fit: BoxFit.contain,
                     ),
                   ),
-                ),
-              ],
+                  Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Scanned on:',
+                            style: TextStyle(
+                              fontSize: 25.0,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(height: 16.0),
+                          Text(
+                            'Date: $formattedDate',
+                            style: TextStyle(fontSize: 20.0),
+                          ),
+                          SizedBox(height: 8.0),
+                          Text(
+                            'Time: $formattedTime',
+                            style: TextStyle(fontSize: 20.0),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class FullScreenImage extends StatelessWidget {
+  final String imageUrl;
+
+  const FullScreenImage({required this.imageUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: GestureDetector(
+        onTap: () {
+          Navigator.pop(context);
+        },
+        child: Container(
+          color: Colors.black,
+          child: PhotoView(
+            imageProvider: NetworkImage(imageUrl),
           ),
         ),
       ),
