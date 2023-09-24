@@ -66,8 +66,8 @@ class _scanState extends State<scan> {
 
 
 
-  // final String apiUrl = "https://a48e-203-192-251-182.ngrok.io/imageapi";
-  final String apiUrl = "http://10.0.2.2:3000/imageapi";
+  final String apiUrl = "https://5078-119-161-98-148.ngrok-free.app/imageapi";
+  // final String apiUrl = "http://10.0.2.2:3000/imageapi";
   String? b64;
 
   Future sendImage(File imageFile, BuildContext context) async {
